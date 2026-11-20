@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Network Packet Routing Search Algorithms</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #0284c7;
+      --accent-bg: #e0f2fe;
+      --code-bg: #0f172a;
+      --code-text: #e2e8f0;
+      --line-active: #1e3a5f;
+      --visited: #93c5fd;
+      --current: #38bdf8;
+      --path: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+
+    header h1 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tab-btn {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 14px 16px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    button.ctrl-btn {
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    button.ctrl-btn:hover {
+      background: var(--accent-bg);
+    }
+
+    button.ctrl-btn.primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .code-box {
+      background: var(--code-bg);
+      color: var(--code-text);
+      border-radius: 6px;
+      overflow: auto;
+      max-height: 560px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      line-height: 1.5;
+      padding: 8px 0;
+    }
+
+    .code-line {
+      display: flex;
+      padding: 0 12px 0 0;
+      white-space: pre;
+    }
+
+    .code-line.active-line {
+      background: var(--line-active);
+    }
+
+    .line-num {
+      display: inline-block;
+      width: 42px;
+      text-align: right;
+      padding-right: 12px;
+      color: #64748b;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .line-text {
+      flex: 1;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    select {
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .svg-wrap {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #ffffff;
+      padding: 6px;
+    }
+
+    svg {
+      width: 100%;
+      height: 250px;
+      display: block;
+    }
+
+    .info-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .info-box p {
+      margin: 0 0 6px 0;
+    }
+
+    .info-box p:last-child {
+      margin-bottom: 0;
+    }
+
+    .mono-state {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Network Packet Routing Search Algorithms</h1>
+    <div id="fileTabs" class="tabs" role="tablist" aria-label="Python files"></div>
+  </header>
+
+  <main class="main-grid">
+    <!-- Left / Main Panel: Verbatim Python Source Code -->
+    <section class="card">
+      <div class="card-header">
+        <span id="codeTitle" class="card-title">a_star.py</span>
+        <button id="copyBtn" class="ctrl-btn" type="button">Copy Code</button>
+      </div>
+      <div id="codeViewer" class="code-box"></div>
+    </section>
+
+    <!-- Right Panel: Step-by-Step Execution Walkthrough & Topology View -->
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Execution Walkthrough &amp; Topology</span>
+        <span id="stepIndicator" style="font-size: 12px; color: var(--muted);">Step 1 / 1</span>
+      </div>
+
+      <div class="controls-row">
+        <label for="networkSelect" style="font-size: 12px; color: var(--muted);">Network:</label>
+        <select id="networkSelect">
+          <option value="network_1">Network 1</option>
+          <option value="network_2">Network 2</option>
+        </select>
+
+        <button id="prevBtn" class="ctrl-btn" type="button">Prev</button>
+        <button id="nextBtn" class="ctrl-btn primary" type="button">Next</button>
+        <button id="resetBtn" class="ctrl-btn" type="button">Reset</button>
+        <button id="playBtn" class="ctrl-btn" type="button">Auto Play</button>
+      </div>
+
+      <div class="legend">
+        <span><i class="dot" style="background:#e2e8f0;border:1px solid #334155;"></i>Unvisited</span>
+        <span><i class="dot" style="background:#93c5fd;border:1px solid #1d4ed8;"></i>Visited / Frontier</span>
+        <span><i class="dot" style="background:#38bdf8;border:1px solid #0369a1;"></i>Current</span>
+        <span><i class="dot" style="background:#22c55e;border:1px solid #15803d;"></i>Final Path</span>
+      </div>
+
+      <div class="svg-wrap">
+        <svg id="routerSvg" viewBox="0 0 640 260" aria-label="Router topology graph"></svg>
+      </div>
+
+      <div class="info-box">
+        <p id="stepSummary"></p>
+        <div id="stepState" class="mono-state"></div>
+        <p id="finalOutput" style="margin-top: 8px; font-weight: 600;"></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Exact verbatim Python code for all 10 files in exact order
+    const FILES = [
+      {
+        name: "a_star.py",
+        supportsNet2: true,
+        code: `import heapq
+
+def a_star_search(network_package, source_router, dest_router, heuristic):
+    frontier = [(heuristic[source_router], 0, source_router, [source_router])]
+    best_cost = {source_router: 0}
+    visited = set()
+    expanded = 0
+
+    while frontier:
+        f, cost, current, path = heapq.heappop(frontier)
+
+        if current == dest_router:
+            return path, cost, expanded
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+        expanded += 1
+
+        for neighbor, weight in network_package.get(current, []):
+            new_cost = cost + weight
+
+            if neighbor not in visited and new_cost < best_cost.get(neighbor, float('inf')):
+                best_cost[neighbor] = new_cost
+
+                f_value = new_cost + heuristic.get(neighbor, float('inf'))
+
+                heapq.heappush(
+                    frontier,
+                    (f_value, new_cost, neighbor, path + [neighbor])
+                )
+
+    return None, 0, expanded
+
+network_1 = {
+    'Router_A': [('Router_B', 2), ('Router_C', 1)],
+    'Router_B': [('Router_A', 2), ('Router_D', 3)],
+    'Router_C': [('Router_A', 1), ('Router_D', 1)],
+    'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+    'Router_F': [('Router_D', 2)]
+}
+
+heuristic_1 = {
+    'Router_A': 5,
+    'Router_B': 4,
+    'Router_C': 2,
+    'Router_D': 1,
+    'Router_F': 0
+}
+
+network_2 = {
+    'Router_A': [('Router_B', 2), ('Router_C', 5)],
+    'Router_B': [('Router_A', 2), ('Router_D', 1), ('Router_E', 4)],
+    'Router_C': [('Router_A', 5), ('Router_F', 6)],
+    'Router_D': [('Router_B', 1), ('Router_F', 2)],
+    'Router_E': [('Router_B', 4), ('Router_F', 1)],
+    'Router_F': [('Router_C', 6), ('Router_D', 2), ('Router_E', 1)]
+}
+
+heuristic_2 = {
+    'Router_A': 4,
+    'Router_B': 3,
+    'Router_C': 5,
+    'Router_D': 2,
+    'Router_E': 1,
+    'Router_F': 0
+}
+
+source_router = 'Router_A'
+dest_router = 'Router_F'
+
+tests = [
+    ("Network 1", network_1, heuristic_1),
+    ("Network 2", network_2, heuristic_2)
+]
+
+for name, network, heuristic in tests:
+    print("---", name, "---")
+
+    path, total_weight, expanded = a_star_search(
+        network,
+        source_router,
+        dest_router,
+        heuristic
+    )
+
+    if path is None:
+        print("not found")
+        print("expanded nodes:", expanded)
+    else:
+        print("Computed Route Path:", path)
+        print("Total Accumulated Weight:", total_weight)
+        print("expanded nodes:", expanded)`
+      },
+      {
+        name: "ac3.py",
+        supportsNet2: false,
+        code: `def revise_router_domain(network_package, router_domains, slot_i, slot_j):
+    revised = False
+
+    for router_x in router_domains[slot_i][:]:
+        valid = False
+        neighbors_x = dict(network_package.get(router_x, []))
+
+        for router_y in router_domains[slot_j]:
+            if router_y in neighbors_x and router_x != router_y:
+                valid = True
+                break
+
+        if not valid:
+            router_domains[slot_i].remove(router_x)
+            revised = True
+
+    return revised
+
+
+def ac3_route_domains(network_package, router_domains):
+    queue = []
+
+    for i in range(len(router_domains) - 1):
+        queue.append((i, i + 1))
+        queue.append((i + 1, i))
+
+    while queue:
+        slot_i, slot_j = queue.pop(0)
+
+        if revise_router_domain(network_package, router_domains, slot_i, slot_j):
+            if len(router_domains[slot_i]) == 0:
+                return False
+
+            for slot_k in range(len(router_domains)):
+                if abs(slot_k - slot_i) == 1 and slot_k != slot_j:
+                    queue.append((slot_k, slot_i))
+
+    return True
+
+
+if __name__ == "__main__":
+    network_package = {
+        'Router_A': [('Router_B', 2), ('Router_C', 1)],
+        'Router_B': [('Router_A', 2), ('Router_D', 3)],
+        'Router_C': [('Router_A', 1), ('Router_D', 1)],
+        'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+        'Router_F': [('Router_D', 2)]
+    }
+
+    source_router = 'Router_A'
+    dest_router = 'Router_F'
+    hop_count = 3
+
+    router_domains = [list(network_package.keys()) for _ in range(hop_count + 1)]
+    router_domains[0] = [source_router]
+    router_domains[hop_count] = [dest_router]
+
+    if ac3_route_domains(network_package, router_domains):
+        print("Arc consistency maintained")
+        print("Possible routers at each position:")
+        for i in range(len(router_domains)):
+            print("Hop", i, ":", router_domains[i])
+    else:
+        print("not found")`
+      },
+      {
+        name: "backtracking.py",
+        supportsNet2: false,
+        code: `def backtracking_route(network_package, current_router, dest_router, packet_path):
+    if current_router == dest_router:
+        return packet_path
+
+    for neighbor, _ in network_package.get(current_router, []):
+        if neighbor not in packet_path:
+            result = backtracking_route(
+                network_package, neighbor, dest_router, packet_path + [neighbor]
+            )
+            if result:
+                return result
+
+    return None
+
+
+def get_path_weight(network_package, packet_path):
+    total_weight = 0
+    for i in range(len(packet_path) - 1):
+        neighbors = dict(network_package.get(packet_path[i], []))
+        total_weight += neighbors[packet_path[i + 1]]
+    return total_weight
+
+
+if __name__ == "__main__":
+    network_package = {
+        'Router_A': [('Router_B', 2), ('Router_C', 1)],
+        'Router_B': [('Router_A', 2), ('Router_D', 3)],
+        'Router_C': [('Router_A', 1), ('Router_D', 1)],
+        'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+        'Router_F': [('Router_D', 2)]
+    }
+
+    source_router = 'Router_A'
+    dest_router = 'Router_F'
+
+    path = backtracking_route(network_package, source_router, dest_router, [source_router])
+
+    if path is None:
+        print("not found")
+    else:
+        total_weight = get_path_weight(network_package, path)
+        print("Computed Route Path:", path)
+        print("Total Accumulated Weight:", total_weight)`
+      },
+      {
+        name: "bfs.py",
+        supportsNet2: false,
+        code: `from collections import deque
+
+def bfs_route(network_package, source, destination):
+    queue = deque([(source, [source])])
+    visited = set()
+
+    while queue:
+        router, path = queue.popleft()
+
+        if router == destination:
+            return path
+
+        if router in visited:
+            continue
+
+        visited.add(router)
+
+        for neighbor, cost in network_package[router]:
+            if neighbor not in visited:
+                queue.append((neighbor, path + [neighbor]))
+
+    return None
+
+
+network_package = {
+    'Router_A': [('Router_B', 2), ('Router_C', 1)],
+    'Router_B': [('Router_A', 2), ('Router_D', 3)],
+    'Router_C': [('Router_A', 1), ('Router_D', 1)],
+    'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+    'Router_F': [('Router_D', 2)]
+}
+
+source_router = 'Router_A'
+dest_router = 'Router_F'
+
+path = bfs_route(network_package, source_router, dest_router)
+
+if path:
+    print("BFS Route:", " -> ".join(path))
+else:
+    print("No route found")`
+      },
+      {
+        name: "dfs.py",
+        supportsNet2: false,
+        code: `def dfs_route(network_package, source, destination):
+    stack = [(source, [source])]
+    visited = set()
+
+    while stack:
+        router, path = stack.pop()
+
+        if router == destination:
+            return path
+
+        if router in visited:
+            continue
+
+        visited.add(router)
+
+        for neighbor, cost in network_package[router]:
+            if neighbor not in visited:
+                stack.append((neighbor, path + [neighbor]))
+
+    return None
+
+
+network_package = {
+    'Router_A': [('Router_B', 2), ('Router_C', 1)],
+    'Router_B': [('Router_A', 2), ('Router_D', 3)],
+    'Router_C': [('Router_A', 1), ('Router_D', 1)],
+    'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+    'Router_F': [('Router_D', 2)]
+}
+
+source_router = 'Router_A'
+dest_router = 'Router_F'
+
+path = dfs_route(network_package, source_router, dest_router)
+
+if path:
+    print("DFS Route:", " -> ".join(path))
+else:
+    print("No route found")`
+      },
+      {
+        name: "greedy_best.py",
+        supportsNet2: false,
+        code: `import heapq
+def greedy_best(network_package,source_router,dest_router,heuristic):
+    pq=[]
+    start_h=heuristic.get(source_router,float('inf'))
+    heapq.heappush(pq,(start_h,source_router,[source_router],0))
+    visited=set()
+    expanded=0
+    while pq:
+        h_val,current,path,total_cost=heapq.heappop(pq)
+        h_val=heuristic.get(current,float('inf'))
+        if current==dest_router:
+            return path,total_cost,expanded
+        if current in visited:
+            continue
+        visited.add(current)
+        expanded+=1
+
+        for neighbor,weight in network_package.get(current,float('inf')):
+            if neighbor not in visited:
+                h_val=heuristic.get(neighbor,float('inf'))
+                heapq.heappush(pq,(h_val,neighbor,path+[neighbor],total_cost+weight))
+
+    return None,float('inf'),expanded
+
+if __name__ == "__main__":
+    network_package = {
+        'Router_A': [('Router_B', 2), ('Router_C', 1)],
+        'Router_B': [('Router_A', 2), ('Router_D', 3)],
+        'Router_C': [('Router_A', 1), ('Router_D', 1)],
+        'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+        'Router_F': [('Router_D', 2)]
+        
+    }
+
+    heuristic = {
+        'Router_A': 5,
+        'Router_B': 4,
+        'Router_C': 2,
+        'Router_D': 1,
+        'Router_F': 0
+
+    }
+
+
+    source_router = 'Router_A'
+    dest_router = 'Router_F'
+
+    path,total_cost,expanded = greedy_best(network_package, source_router, dest_router, heuristic)
+
+    if path is None:
+        print("not found")
+        print("nodes expanded:",expanded)
+    else:
+    
+        print("Optimal Route Path:", path)
+        print("Total Path Cost:", total_cost)
+        print("nodes expanded:",expanded)`
+      },
+      {
+        name: "hill_climbing.py",
+        supportsNet2: false,
+        code: `def hill_climbing(network_package,source_router,dest_router,heuristic):
+    current=source_router
+    path=[current]
+    visited={current}
+    total_weight=0
+    expanded=0
+    while(current!=dest_router):
+        neighbors=network_package.get(current,[])
+        best_neighbor=None
+        min_h=heuristic.get(current,float('inf'))
+        min_weight=float('inf')
+        selected_weight=0
+        for neighbor,weight in neighbors:
+            if neighbor not in visited:
+                h_val=heuristic.get(neighbor,float('inf'))
+                if(h_val<min_h) or (weight<min_weight and h_val==min_h):
+                    min_h=h_val
+                    min_weight=weight
+                    selected_weight=weight
+                    best_neighbor=neighbor
+
+        if best_neighbor is None:
+            return None,0,expanded
+        current=best_neighbor
+        total_weight+=selected_weight
+        path.append(current)
+        visited.add(current)
+        expanded+=1
+
+
+    return path,total_weight,expanded
+
+
+if __name__ == "__main__":
+    network_package = {
+        'Router_A': [('Router_B', 2), ('Router_C', 1)],
+        'Router_B': [('Router_A', 2), ('Router_D', 3)],
+        'Router_C': [('Router_A', 1), ('Router_D', 1)],
+        'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+        'Router_F': [('Router_D', 2)]
+    }
+
+    heuristic = {
+        'Router_A': 5,
+        'Router_B': 4,
+        'Router_C': 2,
+        'Router_D': 1,
+        'Router_F': 0
+    }
+
+    source_router = 'Router_A'
+    dest_router = 'Router_F'
+
+    path, total_weight,expanded = hill_climbing(network_package, source_router, dest_router, heuristic)
+    if(path is None):
+        print("not found")
+        print("expanded nodes:",expanded)
+    else:
+        print("Computed Route Path:", path)
+        print("Total Accumulated Weight:", total_weight)
+        print("expanded nodes:",expanded)`
+      },
+      {
+        name: "iddfs.py",
+        supportsNet2: true,
+        code: `def iterative_search(network_package,node,dest_router,depth,visited):
+    if node==dest_router:
+        return [node]
+    if depth<=0:
+        return None
+    visited.add(node)
+
+    for neighbor in network_package.get(node,[]):
+        if neighbor not in visited:
+            result=iterative_search(network_package,neighbor,dest_router,depth-1,visited)
+            if result is not None:
+                return [node]+result
+
+    visited.remove(node)
+    return None
+
+def iterative_deepning_dfs(network_package,source_router,dest_router,max_depth=10):
+    for depth in range(max_depth+1):
+        visited=set()
+        result=iterative_search(network_package,source_router,dest_router,depth,visited)
+        if result is not None:
+            return result
+    return None
+
+if __name__ == "__main__":
+    network_package={'Router_A': [('Router_B', 2), ('Router_C', 5)],
+        'Router_B': [('Router_A', 2), ('Router_D', 1), ('Router_E', 4)],
+        'Router_C': [('Router_A', 5), ('Router_F', 6)],
+        'Router_D': [('Router_B', 1), ('Router_F', 2)],
+        'Router_E': [('Router_B', 4), ('Router_F', 1)],
+        'Router_F': [('Router_C', 6), ('Router_D', 2), ('Router_E', 1)]}
+    source_router='Router_A'
+    dest_router='Router_F'
+    print(f"Searching route from {source_router} to {dest_router} on a weighted network using IDDFS...")
+    shortest_hop_path= iterative_deepning_dfs(network_package,source_router,dest_router,max_depth=10)
+    print("Computed Route (Shortest Hop Path):", shortest_hop_path)`
+      },
+      {
+        name: "simulated_annealing.py",
+        supportsNet2: false,
+        code: `import random
+import math
+
+
+def compute_route_weight(network_package, packet_path):
+    total_weight = 0
+    for i in range(len(packet_path) - 1):
+        neighbors = dict(network_package.get(packet_path[i], []))
+        total_weight += neighbors[packet_path[i + 1]]
+    return total_weight
+
+
+def sample_initial_route(network_package, source_router, dest_router):
+    packet_path = [source_router]
+    current_router = source_router
+
+    while current_router != dest_router:
+        unvisited_neighbors = [
+            neighbor
+            for neighbor, _ in network_package.get(current_router, [])
+            if neighbor not in packet_path
+        ]
+
+        if not unvisited_neighbors:
+            return None
+
+        current_router = random.choice(unvisited_neighbors)
+        packet_path.append(current_router)
+
+    return packet_path
+
+
+def simulated_annealing_route(network_package, source_router, dest_router):
+    current_path = sample_initial_route(network_package, source_router, dest_router)
+
+    if current_path is None:
+        return None
+
+    best_path = current_path[:]
+    temperature = 100.0
+    all_routers = list(network_package.keys())
+
+    while temperature > 1.0:
+        candidate_path = current_path[:]
+
+        if len(candidate_path) > 2:
+            pos = random.randint(1, len(candidate_path) - 2)
+            candidate_router = random.choice(all_routers)
+
+            if candidate_router not in candidate_path:
+                prev_neighbors = dict(network_package.get(candidate_path[pos - 1], []))
+                cand_neighbors = dict(network_package.get(candidate_router, []))
+
+                if candidate_router in prev_neighbors and candidate_path[pos + 1] in cand_neighbors:
+                    candidate_path[pos] = candidate_router
+
+                    delta = compute_route_weight(network_package, candidate_path) - compute_route_weight(
+                        network_package, current_path
+                    )
+
+                    if delta < 0 or random.random() < math.exp(-delta / temperature):
+                        current_path = candidate_path[:]
+
+                    if compute_route_weight(network_package, current_path) < compute_route_weight(
+                        network_package, best_path
+                    ):
+                        best_path = current_path[:]
+
+        temperature *= 0.95
+
+    return best_path
+
+
+if __name__ == "__main__":
+    network_package = {
+        'Router_A': [('Router_B', 2), ('Router_C', 1)],
+        'Router_B': [('Router_A', 2), ('Router_D', 3)],
+        'Router_C': [('Router_A', 1), ('Router_D', 1)],
+        'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+        'Router_F': [('Router_D', 2)]
+    }
+
+    source_router = 'Router_A'
+    dest_router = 'Router_F'
+
+    path = simulated_annealing_route(network_package, source_router, dest_router)
+
+    if path is None:
+        print("not found")
+    else:
+        total_weight = compute_route_weight(network_package, path)
+        print("Computed Route Path:", path)
+        print("Total Accumulated Weight:", total_weight)`
+      },
+      {
+        name: "uniform_search.py",
+        supportsNet2: true,
+        code: `import heapq
+
+def uniform_cost_search(network_package, source_router, dest_router):
+    frontier = [(0, source_router, [source_router])]
+    best_cost = {source_router: 0}
+    visited = set()
+    expanded = 0
+
+    while frontier:
+        cost, current, path = heapq.heappop(frontier)
+
+        if current == dest_router:
+            return path, cost, expanded
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+        expanded += 1
+
+        for neighbor, weight in network_package.get(current, []):
+            new_cost = cost + weight
+
+            if neighbor not in visited and new_cost < best_cost.get(neighbor, float('inf')):
+                best_cost[neighbor] = new_cost
+                heapq.heappush(frontier, (new_cost, neighbor, path + [neighbor]))
+
+    return None, 0, expanded
+
+network_1 = {
+    'Router_A': [('Router_B', 2), ('Router_C', 1)],
+    'Router_B': [('Router_A', 2), ('Router_D', 3)],
+    'Router_C': [('Router_A', 1), ('Router_D', 1)],
+    'Router_D': [('Router_B', 3), ('Router_C', 1), ('Router_F', 2)],
+    'Router_F': [('Router_D', 2)]
+}
+
+network_2 = {
+    'Router_A': [('Router_B', 2), ('Router_C', 5)],
+    'Router_B': [('Router_A', 2), ('Router_D', 1), ('Router_E', 4)],
+    'Router_C': [('Router_A', 5), ('Router_F', 6)],
+    'Router_D': [('Router_B', 1), ('Router_F', 2)],
+    'Router_E': [('Router_B', 4), ('Router_F', 1)],
+    'Router_F': [('Router_C', 6), ('Router_D', 2), ('Router_E', 1)]
+}
+
+source_router = 'Router_A'
+dest_router = 'Router_F'
+
+for name, network in [("Network 1", network_1), ("Network 2", network_2)]:
+    print("---", name, "---")
+
+    path, total_weight, expanded = uniform_cost_search(
+        network,
+        source_router,
+        dest_router
+    )
+
+    if path is None:
+        print("not found")
+        print("expanded nodes:", expanded)
+    else:
+        print("Computed Route Path:", path)
+        print("Total Accumulated Weight:", total_weight)
+        print("expanded nodes:", expanded)`
+      }
+    ];
+
+    const NETWORKS = {
+      network_1: {
+        nodes: [
+          { id: "Router_A", x: 90, y: 130, h: 5 },
+          { id: "Router_B", x: 250, y: 55, h: 4 },
+          { id: "Router_C", x: 250, y: 205, h: 2 },
+          { id: "Router_D", x: 420, y: 130, h: 1 },
+          { id: "Router_F", x: 565, y: 130, h: 0 }
+        ],
+        edges: [
+          { from: "Router_A", to: "Router_B", cost: 2 },
+          { from: "Router_A", to: "Router_C", cost: 1 },
+          { from: "Router_B", to: "Router_D", cost: 3 },
+          { from: "Router_C", to: "Router_D", cost: 1 },
+          { from: "Router_D", to: "Router_F", cost: 2 }
+        ]
+      },
+      network_2: {
+        nodes: [
+          { id: "Router_A", x: 80, y: 130, h: 4 },
+          { id: "Router_B", x: 230, y: 65, h: 3 },
+          { id: "Router_C", x: 230, y: 205, h: 5 },
+          { id: "Router_D", x: 400, y: 45, h: 2 },
+          { id: "Router_E", x: 400, y: 135, h: 1 },
+          { id: "Router_F", x: 565, y: 130, h: 0 }
+        ],
+        edges: [
+          { from: "Router_A", to: "Router_B", cost: 2 },
+          { from: "Router_A", to: "Router_C", cost: 5 },
+          { from: "Router_B", to: "Router_D", cost: 1 },
+          { from: "Router_B", to: "Router_E", cost: 4 },
+          { from: "Router_C", to: "Router_F", cost: 6 },
+          { from: "Router_D", to: "Router_F", cost: 2 },
+          { from: "Router_E", to: "Router_F", cost: 1 }
+        ]
+      }
+    };
+
+    function getAdj(netKey) {
+      const net = NETWORKS[netKey];
+      const adj = {};
+      net.nodes.forEach((n) => (adj[n.id] = []));
+      net.edges.forEach((e) => {
+        adj[e.from].push([e.to, e.cost]);
+        adj[e.to].push([e.from, e.cost]);
+      });
+      return adj;
+    }
+
+    function pathWeight(netKey, path) {
+      if (!path || path.length < 2) return 0;
+      const adj = getAdj(netKey);
+      let total = 0;
+      for (let i = 0; i < path.length - 1; i++) {
+        const found = adj[path[i]].find(([to]) => to === path[i + 1]);
+        if (found) total += found[1];
+      }
+      return total;
+    }
+
+    function getH(netKey, routerId) {
+      const n = NETWORKS[netKey].nodes.find((item) => item.id === routerId);
+      return n ? n.h : 0;
+    }
+
+    function buildSteps(fileName, netKey) {
+      const adj = getAdj(netKey);
+      const src = "Router_A";
+      const dst = "Router_F";
+      const steps = [];
+
+      const pushStep = (line, current, visited, frontier, path, summary, stateObj, finalText) => {
+        steps.push({
+          line,
+          current,
+          visited: Array.from(visited),
+          frontier: Array.from(frontier),
+          path: path ? [...path] : [],
+          summary,
+          stateText: JSON.stringify(stateObj, null, 2),
+          finalText
+        });
+      };
+
+      if (fileName === "bfs.py") {
+        const queue = [[src, [src]]];
+        const visited = new Set();
+        let finalPath = null;
+        while (queue.length) {
+          const [router, path] = queue.shift();
+          pushStep(8, router, visited, queue.map((x) => x[0]), path,
+            `Popped ${router} from left of queue.`,
+            { router, path, queue: queue.map((x) => [x[0], x[1]]), visited: [...visited] }, "");
+          if (router === dst) {
+            finalPath = path;
+            pushStep(11, router, visited, queue.map((x) => x[0]), path,
+              `Reached ${dst}! Returning shortest-hop path.`,
+              { router, path, visited: [...visited] },
+              `BFS Route: ${path.join(" -> ")}`);
+            return steps;
+          }
+          if (visited.has(router)) {
+            pushStep(14, router, visited, queue.map((x) => x[0]), path,
+              `${router} already in visited; skipping.`,
+              { router, visited: [...visited] }, "");
+            continue;
+          }
+          visited.add(router);
+          for (const [nb] of adj[router]) {
+            if (!visited.has(nb)) {
+              queue.push([nb, [...path, nb]]);
+              pushStep(20, router, visited, queue.map((x) => x[0]), path,
+                `Queued neighbor ${nb} with path ${[...path, nb].join(" -> ")}.`,
+                { router, neighbor: nb, queue: queue.map((x) => [x[0], x[1]]) }, "");
+            }
+          }
+        }
+        return steps;
+      }
+
+      if (fileName === "dfs.py") {
+        const stack = [[src, [src]]];
+        const visited = new Set();
+        while (stack.length) {
+          const [router, path] = stack.pop();
+          pushStep(6, router, visited, stack.map((x) => x[0]), path,
+            `Popped ${router} from top of stack.`,
+            { router, path, stack: stack.map((x) => [x[0], x[1]]), visited: [...visited] }, "");
+          if (router === dst) {
+            pushStep(9, router, visited, stack.map((x) => x[0]), path,
+              `Reached ${dst}! Returning DFS path.`,
+              { router, path, visited: [...visited] },
+              `DFS Route: ${path.join(" -> ")}`);
+            return steps;
+          }
+          if (visited.has(router)) {
+            pushStep(12, router, visited, stack.map((x) => x[0]), path,
+              `${router} already in visited; skipping.`,
+              { router, visited: [...visited] }, "");
+            continue;
+          }
+          visited.add(router);
+          for (const [nb] of adj[router]) {
+            if (!visited.has(nb)) {
+              stack.push([nb, [...path, nb]]);
+              pushStep(18, router, visited, stack.map((x) => x[0]), path,
+                `Pushed neighbor ${nb} onto stack.`,
+                { router, neighbor: nb, stack: stack.map((x) => [x[0], x[1]]) }, "");
+            }
+          }
+        }
+      }
+
+      if (fileName === "uniform_search.py") {
+        const frontier = [[0, src, [src]]];
+        const bestCost = { [src]: 0 };
+        const visited = new Set();
+        let expanded = 0;
+        while (frontier.length) {
+          frontier.sort((a, b) => a[0] - b[0]);
+          const [cost, current, path] = frontier.shift();
+          pushStep(10, current, visited, frontier.map((x) => x[1]), path,
+            `Popped lowest-cost router ${current} (cost=${cost}).`,
+            { cost, current, path, best_cost: { ...bestCost }, expanded }, "");
+          if (current === dst) {
+            pushStep(13, current, visited, frontier.map((x) => x[1]), path,
+              `Reached ${dst} with minimum cost ${cost}.`,
+              { path, cost, expanded },
+              `Computed Route Path: ${JSON.stringify(path)} | Total Accumulated Weight: ${cost} | expanded nodes: ${expanded}`);
+            return steps;
+          }
+          if (visited.has(current)) {
+            pushStep(16, current, visited, frontier.map((x) => x[1]), path,
+              `${current} already visited; skipping.`,
+              { current, visited: [...visited] }, "");
+            continue;
+          }
+          visited.add(current);
+          expanded += 1;
+          for (const [nb, w] of adj[current]) {
+            const newCost = cost + w;
+            if (!visited.has(nb) && newCost < (bestCost[nb] ?? Infinity)) {
+              bestCost[nb] = newCost;
+              frontier.push([newCost, nb, [...path, nb]]);
+              pushStep(26, current, visited, frontier.map((x) => x[1]), path,
+                `Updated best_cost[${nb}] = ${newCost} and pushed to frontier.`,
+                { neighbor: nb, new_cost: newCost, best_cost: { ...bestCost } }, "");
+            }
+          }
+        }
+      }
+
+      if (fileName === "a_star.py") {
+        const frontier = [[getH(netKey, src), 0, src, [src]]];
+        const bestCost = { [src]: 0 };
+        const visited = new Set();
+        let expanded = 0;
+        while (frontier.length) {
+          frontier.sort((a, b) => a[0] - b[0]);
+          const [f, cost, current, path] = frontier.shift();
+          pushStep(10, current, visited, frontier.map((x) => x[2]), path,
+            `Popped ${current} with f=${f} (cost=${cost}, h=${getH(netKey, current)}).`,
+            { f, cost, current, path, best_cost: { ...bestCost }, expanded }, "");
+          if (current === dst) {
+            pushStep(13, current, visited, frontier.map((x) => x[2]), path,
+              `Reached ${dst}! Returning optimal A* route.`,
+              { path, cost, expanded },
+              `Computed Route Path: ${JSON.stringify(path)} | Total Accumulated Weight: ${cost} | expanded nodes: ${expanded}`);
+            return steps;
+          }
+          if (visited.has(current)) {
+            pushStep(16, current, visited, frontier.map((x) => x[2]), path,
+              `${current} already visited; skipping.`,
+              { current, visited: [...visited] }, "");
+            continue;
+          }
+          visited.add(current);
+          expanded += 1;
+          for (const [nb, w] of adj[current]) {
+            const newCost = cost + w;
+            if (!visited.has(nb) && newCost < (bestCost[nb] ?? Infinity)) {
+              bestCost[nb] = newCost;
+              const fVal = newCost + getH(netKey, nb);
+              frontier.push([fVal, newCost, nb, [...path, nb]]);
+              pushStep(29, current, visited, frontier.map((x) => x[2]), path,
+                `Pushed ${nb} with f_value=${fVal} (new_cost=${newCost}, h=${getH(netKey, nb)}).`,
+                { neighbor: nb, new_cost: newCost, f_value: fVal }, "");
+            }
+          }
+        }
+      }
+
+      if (fileName === "greedy_best.py") {
+        const pq = [[getH(netKey, src), src, [src], 0]];
+        const visited = new Set();
+        let expanded = 0;
+        while (pq.length) {
+          pq.sort((a, b) => a[0] - b[0]);
+          const [hVal, current, path, totalCost] = pq.shift();
+          pushStep(9, current, visited, pq.map((x) => x[1]), path,
+            `Popped ${current} with lowest heuristic h=${hVal} (cost=${totalCost}).`,
+            { h_val: hVal, current, path, total_cost: totalCost, expanded }, "");
+          if (current === dst) {
+            pushStep(12, current, visited, pq.map((x) => x[1]), path,
+              `Reached ${dst}! Returning Greedy Best-First route.`,
+              { path, total_cost: totalCost, expanded },
+              `Optimal Route Path: ${JSON.stringify(path)} | Total Path Cost: ${totalCost} | nodes expanded: ${expanded}`);
+            return steps;
+          }
+          if (visited.has(current)) {
+            pushStep(14, current, visited, pq.map((x) => x[1]), path,
+              `${current} already in visited; skipping.`,
+              { current, visited: [...visited] }, "");
+            continue;
+          }
+          visited.add(current);
+          expanded += 1;
+          for (const [nb, w] of adj[current]) {
+            if (!visited.has(nb)) {
+              const nh = getH(netKey, nb);
+              pq.push([nh, nb, [...path, nb], totalCost + w]);
+              pushStep(21, current, visited, pq.map((x) => x[1]), path,
+                `Pushed neighbor ${nb} with heuristic h=${nh}.`,
+                { neighbor: nb, h_val: nh, total_cost: totalCost + w }, "");
+            }
+          }
+        }
+      }
+
+      if (fileName === "hill_climbing.py") {
+        let current = src;
+        const path = [current];
+        const visited = new Set([current]);
+        let totalWeight = 0;
+        let expanded = 0;
+        while (current !== dst) {
+          let bestNeighbor = null;
+          let minH = getH(netKey, current);
+          let minWeight = Infinity;
+          let selectedWeight = 0;
+          pushStep(10, current, visited, [], path,
+            `At ${current} (h=${minH}); checking neighbors for lower heuristic.`,
+            { current, min_h: minH, path, total_weight: totalWeight, expanded }, "");
+          for (const [nb, w] of adj[current]) {
+            if (!visited.has(nb)) {
+              const hv = getH(netKey, nb);
+              if (hv < minH || (w < minWeight && hv === minH)) {
+                minH = hv;
+                minWeight = w;
+                selectedWeight = w;
+                bestNeighbor = nb;
+              }
+            }
+          }
+          if (bestNeighbor === null) {
+            pushStep(23, current, visited, [], path,
+              `No improving neighbor found from ${current}; returning None.`,
+              { current, path, total_weight: totalWeight, expanded },
+              `not found | expanded nodes: ${expanded}`);
+            return steps;
+          }
+          current = bestNeighbor;
+          totalWeight += selectedWeight;
+          path.push(current);
+          visited.add(current);
+          expanded += 1;
+          pushStep(28, current, visited, [], path,
+            `Moved to best neighbor ${current} (total_weight=${totalWeight}).`,
+            { current, path, total_weight: totalWeight, expanded }, "");
+        }
+        pushStep(31, current, visited, [], path,
+          `Reached ${dst} via Hill Climbing.`,
+          { path, total_weight: totalWeight, expanded },
+          `Computed Route Path: ${JSON.stringify(path)} | Total Accumulated Weight: ${totalWeight} | expanded nodes: ${expanded}`);
+        return steps;
+      }
+
+      if (fileName === "iddfs.py") {
+        for (let depth = 0; depth <= 10; depth++) {
+          const visited = new Set();
+          const res = (function dfsDepth(node, d, p) {
+            pushStep(6, node, visited, [], p,
+              `Depth limit ${depth} (remaining ${d}): visiting ${node}.`,
+              { depth, remaining_depth: d, node, path: p, visited: [...visited] }, "");
+            if (node === dst) return p;
+            if (d <= 0) return null;
+            visited.add(node);
+            for (const [nb] of adj[node]) {
+              if (!visited.has(nb)) {
+                const found = dfsDepth(nb, d - 1, [...p, nb]);
+                if (found) return found;
+              }
+            }
+            visited.delete(node);
+            pushStep(14, node, visited, [], p,
+              `Backtracking from ${node} at depth limit ${depth}.`,
+              { depth, node, visited: [...visited] }, "");
+            return null;
+          })(src, depth, [src]);
+
+          if (res) {
+            pushStep(21, dst, new Set(res), [], res,
+              `Found shortest-hop route at depth ${depth}: ${res.join(" -> ")}.`,
+              { depth, shortest_hop_path: res },
+              `Computed Route (Shortest Hop Path): ${JSON.stringify(res)}`);
+            return steps;
+          }
+        }
+      }
+
+      if (fileName === "backtracking.py") {
+        const visited = new Set();
+        const found = (function bt(curr, packetPath) {
+          visited.add(curr);
+          pushStep(3, curr, visited, [], packetPath,
+            `Exploring ${curr} with packet_path=${JSON.stringify(packetPath)}.`,
+            { current_router: curr, packet_path: packetPath }, "");
+          if (curr === dst) return packetPath;
+          for (const [nb] of adj[curr]) {
+            if (!packetPath.includes(nb)) {
+              const res = bt(nb, [...packetPath, nb]);
+              if (res) return res;
+              pushStep(11, curr, visited, [], packetPath,
+                `Backtracked to ${curr} after dead end at ${nb}.`,
+                { current_router: curr, packet_path: packetPath }, "");
+            }
+          }
+          return null;
+        })(src, [src]);
+
+        if (found) {
+          const w = pathWeight(netKey, found);
+          pushStep(55, dst, new Set(found), [], found,
+            `Found valid route ${found.join(" -> ")} with weight ${w}.`,
+            { path: found, total_weight: w },
+            `Computed Route Path: ${JSON.stringify(found)} | Total Accumulated Weight: ${w}`);
+        }
+        return steps;
+      }
+
+      if (fileName === "simulated_annealing.py") {
+        // Deterministic initial route for clear step-by-step inspection
+        const initPath = [src, "Router_B", "Router_D", dst];
+        const betterPath = [src, "Router_C", "Router_D", dst];
+        const wInit = pathWeight(netKey, initPath);
+        const wBetter = pathWeight(netKey, betterPath);
+
+        pushStep(34, initPath[1], new Set(initPath), [], initPath,
+          `Sampled initial route ${initPath.join(" -> ")} (weight=${wInit}) with temperature=100.0.`,
+          { current_path: initPath, best_path: initPath, temperature: 100.0, weight: wInit }, "");
+
+        pushStep(57, betterPath[1], new Set(betterPath), [], betterPath,
+          `Candidate swap ${betterPath.join(" -> ")} has delta=${wBetter - wInit} (< 0); accepted!`,
+          { candidate_path: betterPath, delta: wBetter - wInit, temperature: 95.0 }, "");
+
+        pushStep(69, dst, new Set(betterPath), [], betterPath,
+          `Annealing finished; best path is ${betterPath.join(" -> ")} (weight=${wBetter}).`,
+          { best_path: betterPath, total_weight: wBetter },
+          `Computed Route Path: ${JSON.stringify(betterPath)} | Total Accumulated Weight: ${wBetter}`);
+        return steps;
+      }
+
+      if (fileName === "ac3.py") {
+        const hopCount = 3;
+        const allRouters = NETWORKS[netKey].nodes.map((n) => n.id);
+        const domains = Array.from({ length: hopCount + 1 }, () => [...allRouters]);
+        domains[0] = [src];
+        domains[hopCount] = [dst];
+
+        const queue = [];
+        for (let i = 0; i < domains.length - 1; i++) {
+          queue.push([i, i + 1], [i + 1, i]);
+        }
+
+        pushStep(25, src, new Set([src, dst]), [], [src, dst],
+          `Initialized hop domains (hop_count=3) and queued ${queue.length} arcs.`,
+          { router_domains: domains, queue }, "");
+
+        while (queue.length) {
+          const [si, sj] = queue.shift();
+          let revised = false;
+          for (const rx of [...domains[si]]) {
+            const nbSet = new Set(adj[rx].map(([to]) => to));
+            const ok = domains[sj].some((ry) => nbSet.has(ry) && rx !== ry);
+            if (!ok) {
+              domains[si] = domains[si].filter((r) => r !== rx);
+              revised = true;
+            }
+          }
+          pushStep(29, domains[si][0] || src, new Set(domains.flat()), [], [],
+            revised
+              ? `Revised Hop ${si} against Hop ${sj}; remaining: [${domains[si].join(", ")}].`
+              : `Checked arc (${si}, ${sj}); Hop ${si} already consistent.`,
+            { slot_i: si, slot_j: sj, revised, router_domains: domains }, "");
+
+          if (revised) {
+            for (let sk = 0; sk < domains.length; sk++) {
+              if (Math.abs(sk - si) === 1 && sk !== sj) queue.push([sk, si]);
+            }
+          }
+        }
+
+        pushStep(58, dst, new Set(domains.flat()), [], [],
+          `Arc consistency maintained across all hops (0..3).`,
+          { router_domains: domains },
+          `Arc consistency maintained | ${domains.map((d, i) => `Hop ${i}: [${d.join(", ")}]`).join(" | ")}`);
+        return steps;
+      }
+
+      return steps;
+    }
+
+    // Application state
+    let selectedFileIdx = 0;
+    let selectedNetwork = "network_1";
+    let steps = [];
+    let stepIndex = 0;
+    let playTimer = null;
+
+    function stopAutoPlay() {
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      document.getElementById("playBtn").textContent = "Auto Play";
+    }
+
+    function renderTabs() {
+      const tabsEl = document.getElementById("fileTabs");
+      tabsEl.innerHTML = "";
+      FILES.forEach((f, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tab-btn" + (idx === selectedFileIdx ? " active" : "");
+        btn.textContent = f.name;
+        btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-selected", idx === selectedFileIdx ? "true" : "false");
+        btn.addEventListener("click", () => {
+          stopAutoPlay();
+          selectedFileIdx = idx;
+          const fileObj = FILES[selectedFileIdx];
+          const netSelect = document.getElementById("networkSelect");
+          if (!fileObj.supportsNet2 && selectedNetwork === "network_2") {
+            selectedNetwork = "network_1";
+            netSelect.value = "network_1";
+          }
+          netSelect.querySelector('option[value="network_2"]').disabled = !fileObj.supportsNet2;
+          renderTabs();
+          rebuildSteps();
+          renderAll();
+        });
+        tabsEl.appendChild(btn);
+      });
+    }
+
+    function rebuildSteps() {
+      const fileObj = FILES[selectedFileIdx];
+      steps = buildSteps(fileObj.name, selectedNetwork);
+      stepIndex = 0;
+    }
+
+    function renderCode() {
+      const fileObj = FILES[selectedFileIdx];
+      const activeLine = steps[stepIndex] ? steps[stepIndex].line : -1;
+      document.getElementById("codeTitle").textContent = fileObj.name;
+
+      const lines = fileObj.code.split("\n");
+      const viewer = document.getElementById("codeViewer");
+      viewer.innerHTML = lines
+        .map((lineText, idx) => {
+          const lineNo = idx + 1;
+          const cls = lineNo === activeLine ? "code-line active-line" : "code-line";
+          const escaped = lineText
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+          return `<div class="${cls}" data-line="${lineNo}"><span class="line-num">${lineNo}</span><span class="line-text">${escaped}</span></div>`;
+        })
+        .join("");
+
+      const activeEl = viewer.querySelector(`.code-line[data-line="${activeLine}"]`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function renderSvg() {
+      const svg = document.getElementById("routerSvg");
+      const net = NETWORKS[selectedNetwork];
+      const st = steps[stepIndex] || { visited: [], frontier: [], current: null, path: [] };
+      const visitedSet = new Set(st.visited || []);
+      const frontierSet = new Set(st.frontier || []);
+      const pathSet = new Set(st.path || []);
+
+      const pathEdges = new Set();
+      if (st.path && st.path.length > 1) {
+        for (let i = 0; i < st.path.length - 1; i++) {
+          pathEdges.add(`${st.path[i]}--${st.path[i + 1]}`);
+          pathEdges.add(`${st.path[i + 1]}--${st.path[i]}`);
+        }
+      }
+
+      const nodeMap = {};
+      net.nodes.forEach((n) => (nodeMap[n.id] = n));
+
+      let markup = "";
+
+      // Draw edges
+      net.edges.forEach((e) => {
+        const a = nodeMap[e.from];
+        const b = nodeMap[e.to];
+        const isPathEdge = pathEdges.has(`${e.from}--${e.to}`);
+        const stroke = isPathEdge ? "#22c55e" : "#64748b";
+        const width = isPathEdge ? 3.5 : 2;
+        const mx = (a.x + b.x) / 2;
+        const my = (a.y + b.y) / 2;
+
+        markup += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${stroke}" stroke-width="${width}" />`;
+        markup += `<rect x="${mx - 12}" y="${my - 10}" width="24" height="18" rx="4" fill="#ffffff" stroke="#cbd5e1" />`;
+        markup += `<text x="${mx}" y="${my + 3}" text-anchor="middle" font-size="11" font-family="monospace" fill="#0f172a">${e.cost}</text>`;
+      });
+
+      // Draw nodes
+      net.nodes.forEach((n) => {
+        let fill = "#e2e8f0";
+        let stroke = "#334155";
+        if (pathSet.has(n.id)) {
+          fill = "#22c55e";
+          stroke = "#15803d";
+        } else if (n.id === st.current) {
+          fill = "#38bdf8";
+          stroke = "#0369a1";
+        } else if (visitedSet.has(n.id) || frontierSet.has(n.id)) {
+          fill = "#93c5fd";
+          stroke = "#1d4ed8";
+        }
+
+        const shortName = n.id.replace("Router_", "R_");
+        markup += `<circle cx="${n.x}" cy="${n.y}" r="22" fill="${fill}" stroke="${stroke}" stroke-width="2.5" />`;
+        markup += `<text x="${n.x}" y="${n.y + 4}" text-anchor="middle" font-size="11" font-weight="600" font-family="monospace" fill="#0f172a">${shortName}</text>`;
+        markup += `<text x="${n.x}" y="${n.y + 36}" text-anchor="middle" font-size="10" font-family="monospace" fill="#475569">${n.id} (h=${n.h})</text>`;
+      });
+
+      svg.innerHTML = markup;
+    }
+
+    function renderStepInfo() {
+      const st = steps[stepIndex] || { summary: "", stateText: "{}", finalText: "" };
+      document.getElementById("stepIndicator").textContent = `Step ${stepIndex + 1} / ${Math.max(1, steps.length)}`;
+      document.getElementById("stepSummary").textContent = st.summary;
+      document.getElementById("stepState").textContent = st.stateText;
+      document.getElementById("finalOutput").textContent = st.finalText;
+    }
+
+    function renderAll() {
+      renderCode();
+      renderSvg();
+      renderStepInfo();
+    }
+
+    document.getElementById("networkSelect").addEventListener("change", (e) => {
+      stopAutoPlay();
+      selectedNetwork = e.target.value;
+      rebuildSteps();
+      renderAll();
+    });
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      stopAutoPlay();
+      if (stepIndex > 0) {
+        stepIndex -= 1;
+        renderAll();
+      }
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      stopAutoPlay();
+      if (stepIndex < steps.length - 1) {
+        stepIndex += 1;
+        renderAll();
+      }
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      stopAutoPlay();
+      stepIndex = 0;
+      renderAll();
+    });
+
+    document.getElementById("playBtn").addEventListener("click", () => {
+      if (playTimer) {
+        stopAutoPlay();
+        return;
+      }
+      if (stepIndex >= steps.length - 1) {
+        stepIndex = 0;
+      }
+      document.getElementById("playBtn").textContent = "Stop";
+      playTimer = setInterval(() => {
+        if (stepIndex < steps.length - 1) {
+          stepIndex += 1;
+          renderAll();
+        } else {
+          stopAutoPlay();
+        }
+      }, 750);
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      const text = FILES[selectedFileIdx].code;
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      const btn = document.getElementById("copyBtn");
+      btn.textContent = "Copied";
+      setTimeout(() => {
+        btn.textContent = "Copy Code";
+      }, 1200);
+    });
+
+    renderTabs();
+    rebuildSteps();
+    renderAll();
+  </script>
+</body>
+</html>
