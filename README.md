@@ -36,3 +36,4 @@ Implementation of various uninformed, informed, local search, and constraint sat
 ├── simulated_annealing.py
 ├── uniform_search.py
 └── README.md
+ 
